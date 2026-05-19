@@ -7,7 +7,8 @@
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #1a1a1a;
+            overflow: hidden; 
+            background-color: #f3f4f6; /* Kenardaki siyah alanlar kalktı, temiz açık gri oldu */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -17,37 +18,34 @@
             width: 100vw; height: 100vh;
             overflow: hidden; display: flex;
             align-items: center; justify-content: center;
-            cursor: grab; background: #111111;
+            cursor: grab; 
+            background-color: #f3f4f6; /* Sonsuz temiz arka plan */
             position: relative;
         }
         #canvas-container:active { cursor: grabbing; }
         
-        /* TEMİZ, İNCE ÇİZGİLİ VE KÜÇÜK KARELİ TUVAL */
+        /* 100x100 KUSURSUZ TUVAL PANELİ */
         #pixel-canvas {
             display: grid;
             grid-template-columns: repeat(100, 10px); /* Kareler 10px */
             grid-template-rows: repeat(100, 10px);
             background-color: #ffffff;
-            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             transform-origin: center center;
             will-change: transform;
-            
-            /* Görseldeki gibi noktasız, temiz ince çizgi ızgarası */
-            background-image: 
-                linear-gradient(#e5e7eb 1px, transparent 1px),
-                linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
-            background-size: 10px 10px;
         }
         
-        /* Tıklama Alanının Kaybolmaması İçin background-color opaque yapıldı */
+        /* Karelerin Ayarı ve Uzaklaştıkça Eriyen Çizgiler */
         .pixel {
             width: 10px;
             height: 10px;
-            border: none; 
             box-sizing: border-box;
-            background-color: rgba(255, 255, 255, 0.01); /* Şeffaf ama tıklanabilir */
+            background-color: #ffffff; /* Varsayılan beyaz taban */
+            /* İnce, noktasız ve uzaklaşınca eriyen çizgiler için akıllı sınır */
+            outline: 0.5px solid rgba(229, 231, 235, 0.7);
+            outline-offset: -0.5px;
         }
-        .pixel:hover { filter: brightness(0.85); cursor: pointer; background-color: rgba(0,0,0,0.1); }
+        .pixel:hover { filter: brightness(0.9); cursor: pointer; }
         
         /* SAĞ ÜST KÖŞEDEKİ BÜYÜTÜLMÜŞ ARAYÜZ ALANI */
         #ui-layer-top-right {
@@ -65,7 +63,7 @@
             padding: 15px;
             border-radius: 50%;
             border: 4px solid #000000;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
             display: flex; align-items: center; justify-content: center;
         }
         #color-wheel {
@@ -116,7 +114,7 @@
         .shade-box {
             width: 36px; height: 36px; border-radius: 6px;
             cursor: pointer; border: 3px solid transparent; box-sizing: border-box;
-            transition: transform 0.1s; /* Hatalı olan parantez düzeltildi */
+            transition: transform 0.1s;
         }
         .shade-box:hover { transform: scale(1.1); }
         .shade-box.selected { border-color: #000000; box-shadow: inset 0 0 0 2px #fff; transform: scale(1.15); }
@@ -225,7 +223,7 @@
                     const veri = docSnap.data();
                     const hedefPixel = canvas.querySelector(`[data-id="${i}"]`);
                     if (hedefPixel) {
-                        hedefPixel.style.backgroundColor = veri.renk || "rgba(255,255,255,0.01)";
+                        hedefPixel.style.backgroundColor = veri.renk || "#ffffff";
                     }
                 }
             });
@@ -310,7 +308,7 @@
 
         updateShadePanel("#FF0000");
 
-        // 5. Gelişmiş Drag & Zoom Sistemi (Tamamen Stabilize Edildi)
+        // 5. Kararlı Drag & Zoom Sistemi
         let scale = 1.5;
         let isDragging = false;
         let startX, startY, translateX = 0, translateY = 0;
