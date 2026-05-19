@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixelword - Piksel Dünyası</title>
+    <title>Pixelword - Profesyonel Piksel Dünyası</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; 
-            background-color: #f3f4f6; /* Siyah alanlar yok, temiz açık gri */
+            overflow: hidden; background-color: #f3f4f6; /* Siyah alanlar yok, temiz açık gri */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -18,8 +17,7 @@
             width: 100vw; height: 100vh;
             overflow: hidden; display: flex;
             align-items: center; justify-content: center;
-            cursor: grab; 
-            background-color: #f3f4f6;
+            cursor: grab; background-color: #f3f4f6;
             position: relative;
         }
         #canvas-container:active { cursor: grabbing; }
@@ -47,42 +45,87 @@
         }
         .pixel:hover { filter: brightness(0.9); cursor: pointer; }
         
-        /* Arayüz Elemanları (Senin Orijinal Alt Paletin) */
-        #ui-layer {
-            position: absolute;
-            bottom: 30px; left: 50%;
-            transform: translateX(-50%); display: flex;
-            flex-direction: column; align-items: center; gap: 15px;
+        /* SAĞ ÜST KÖŞEDEKİ BÜYÜK GELİŞMİŞ RENK ARAYÜZÜ (TAMAMEN KORUNDU) */
+        #ui-layer-top-right {
+            position: absolute; top: 25px; right: 25px;
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
             pointer-events: none; z-index: 10;
         }
         .interactive { pointer-events: auto; }
         
-        /* Orijinal Renk Paleti Tasarımın */
-        #palette {
-            display: flex;
-            gap: 10px; background: #fff;
-            padding: 12px 20px; border-radius: 50px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            border: 3px solid #000;
+        /* YUVARLAK RENK ÇARKI */
+        .wheel-container {
+            position: relative;
+            width: 240px; height: 240px;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 50%;
+            border: 4px solid #000000;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+            display: flex; align-items: center; justify-content: center;
         }
-        .color-box {
-            width: 32px;
-            height: 32px; border-radius: 50%;
-            cursor: pointer; border: 3px solid transparent;
-            box-sizing: border-box; transition: transform 0.1s;
+        #color-wheel {
+            position: relative;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            list-style: none; margin: 0; padding: 0;
+            overflow: hidden;
         }
-        .color-box:hover { transform: scale(1.15); }
-        .color-box.selected { border-color: #000; transform: scale(1.2); }
+        .color-slice {
+            overflow: hidden; position: absolute;
+            top: 0; right: 0; width: 50%; height: 50%;
+            transform-origin: 0% 100%; cursor: pointer;
+        }
+        .color-slice:hover { filter: brightness(1.15); }
+        .color-slice.selected { filter: brightness(1.25); }
 
-        /* Zamanlayıcı Butonu */
-        #timer-btn {
-            background: #EF4444;
-            color: white; border: 3px solid #000;
-            padding: 12px 35px; font-weight: bold; font-size: 20px;
-            border-radius: 8px; box-shadow: 0 5px 0 #000;
-            display: none; font-family: sans-serif;
+        /* 12 Segmentli Profesyonel Renk Dağılımı */
+        .slice-1  { transform: rotate(0deg) skewY(-60deg); background: #FFD300; }   
+        .slice-2  { transform: rotate(30deg) skewY(-60deg); background: #97C701; }  
+        .slice-3  { transform: rotate(60deg) skewY(-60deg); background: #019D00; }  
+        .slice-4  { transform: rotate(90deg) skewY(-60deg); background: #00ACAD; }  
+        .slice-5  { transform: rotate(120deg) skewY(-60deg); background: #0088F5; } 
+        .slice-6  { transform: rotate(150deg) skewY(-60deg); background: #001391; } 
+        .slice-7  { transform: rotate(180deg) skewY(-60deg); background: #7F00FF; } 
+        .slice-8  { transform: rotate(210deg) skewY(-60deg); background: #FF00FF; } 
+        .slice-9  { transform: rotate(240deg) skewY(-60deg); background: #FF007F; } 
+        .slice-10 { transform: rotate(270deg) skewY(-60deg); background: #FF0000; } 
+        .slice-11 { transform: rotate(300deg) skewY(-60deg); background: #FF7F00; } 
+        .slice-12 { transform: rotate(330deg) skewY(-60deg); background: #FFFFA1; } 
+
+        /* Çarkın Merkezindeki Siyah-Beyaz Alan */
+        .center-circle {
+            position: absolute; width: 75px; height: 75px;
+            background: white; border-radius: 50%; z-index: 10;
+            border: 4px solid #000000; display: flex; overflow: hidden;
         }
-        #timer-btn.waiting { background: #4B5563; box-shadow: 0 2px 0 #000; transform: translateY(3px); }
+        .center-color { width: 50%; height: 100%; cursor: pointer; }
+        .center-color:hover { filter: brightness(0.85); }
+
+        /* ARA RENK TONLARI PANELİ */
+        #shade-panel {
+            display: flex; gap: 8px; background: #ffffff;
+            padding: 12px 18px; border-radius: 14px;
+            border: 4px solid #000000; box-shadow: 0 8px 0px #000000;
+            width: calc(100% - 36px); justify-content: space-between;
+        }
+        .shade-box {
+            width: 36px; height: 36px; border-radius: 6px;
+            cursor: pointer; border: 3px solid transparent; box-sizing: border-box;
+            transition: transform 0.1s;
+        }
+        .shade-box:hover { transform: scale(1.1); }
+        .shade-box.selected { border-color: #000000; box-shadow: inset 0 0 0 2px #fff; transform: scale(1.15); }
+
+        /* Alt Orta Geri Sayım Butonu */
+        #timer-btn {
+            position: absolute; bottom: 30px; left: 50%;
+            transform: translateX(-50%); pointer-events: none; z-index: 10;
+            background: #ef4444; color: white; border: 3px solid #000000;
+            padding: 12px 35px; font-weight: bold; font-size: 22px;
+            border-radius: 8px; box-shadow: 0 5px 0px #000000; display: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
     </style>
 </head>
 <body>
@@ -91,17 +134,36 @@
         <div id="pixel-canvas"></div>
     </div>
 
-    <div id="ui-layer">
-        <button id="timer-btn" class="waiting">5s</button>
-        <div id="palette" class="interactive">
-            <div class="color-box selected" style="background: #000000;" data-color="#000000"></div>
-            <div class="color-box" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff"></div>
-            <div class="color-box" style="background: #e63946;" data-color="#e63946"></div>
-            <div class="color-box" style="background: #4cc9f0;" data-color="#4cc9f0"></div>
-            <div class="color-box" style="background: #2a9d8f;" data-color="#2a9d8f"></div>
-            <div class="color-box" style="background: #e9c46a;" data-color="#e9c46a"></div>
-            <div class="color-box" style="background: #f4a261;" data-color="#f4a261"></div>
-            <div class="color-box" style="background: #a2d2ff;" data-color="#a2d2ff"></div>
+    <button id="timer-btn">5s</button>
+
+    <div id="ui-layer-top-right">
+        <div class="wheel-container interactive">
+            <ul id="color-wheel">
+                <li class="color-slice slice-1" data-color="#FFD300"></li>
+                <li class="color-slice slice-2" data-color="#97C701"></li>
+                <li class="color-slice slice-3" data-color="#019D00"></li>
+                <li class="color-slice slice-4" data-color="#00ACAD"></li>
+                <li class="color-slice slice-5" data-color="#0088F5"></li>
+                <li class="color-slice slice-6" data-color="#001391"></li>
+                <li class="color-slice slice-7" data-color="#7F00FF"></li>
+                <li class="color-slice slice-8" data-color="#FF00FF"></li>
+                <li class="color-slice slice-9" data-color="#FF007F"></li>
+                <li class="color-slice slice-10" data-color="#FF0000"></li>
+                <li class="color-slice slice-11" data-color="#FF7F00"></li>
+                <li class="color-slice slice-12" data-color="#FFFFA1"></li>
+            </ul>
+            <div class="center-circle">
+                <div class="center-color" style="background: #ffffff;" data-color="#ffffff"></div>
+                <div class="center-color" style="background: #000000;" data-color="#000000"></div>
+            </div>
+        </div>
+
+        <div id="shade-panel" class="interactive">
+            <div class="shade-box" id="shade-1"></div>
+            <div class="shade-box" id="shade-2"></div>
+            <div class="shade-box" id="shade-3"></div>
+            <div class="shade-box" id="shade-4"></div>
+            <div class="shade-box" id="shade-5"></div>
         </div>
     </div>
 
@@ -120,14 +182,13 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
         const canvas = document.getElementById('pixel-canvas');
         const timerBtn = document.getElementById('timer-btn');
-        let selectedColor = '#000000';
+        let selectedColor = '#FF0000'; 
         let canPlacePixel = true;
         let countdown = 5;
-
-        // Sürükleme esnasında yanlışlıkla piksel boyanmasını önlemek için durum kontrolü
-        let isMoving = false;
+        let isMoving = false; // Sürüklerken yanlış boyamayı engelleme kontrolü
 
         // 1. Haritayı Kurma (10.000 Kare)
         for (let i = 0; i < 10000; i++) {
@@ -136,12 +197,11 @@
             pixel.dataset.id = i; 
             
             pixel.addEventListener('click', async () => {
-                // Eğer kullanıcı şu an haritayı sürüklüyorsa boyama yapma
-                if (isMoving) return;
+                if (isMoving) return; // Sürükleme yapılıyorsa tıklamayı iptal et
                 if (!canPlacePixel) return;
 
                 const pixelId = pixel.dataset.id;
-                startCooldown(); 
+                startCooldown();
 
                 try {
                     await setDoc(doc(db, "pikseller", "kare_" + pixelId), {
@@ -152,6 +212,7 @@
                     console.error("Hata:", e);
                 }
             });
+
             canvas.appendChild(pixel);
         }
 
@@ -168,7 +229,7 @@
             });
         }
 
-        // 3. Cooldown Sistemi
+        // 3. Cooldown
         function startCooldown() {
             canPlacePixel = false;
             countdown = 5;
@@ -186,17 +247,68 @@
             }, 1000);
         }
 
-        // 4. Palet Seçim Kontrolü
-        const colorBoxes = document.querySelectorAll('.color-box');
-        colorBoxes.forEach(box => {
+        // Tonlama Sihirbazı
+        function lampColor(hex, percent) {
+            let num = parseInt(hex.replace("#",""),16),
+            amt = Math.round(2.55 * percent),
+            R = (num >> 16) + amt,
+            G = (num >> 8 & 0x00FF) + amt,
+            B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+        }
+
+        // Alt Paleti Güncelle
+        function updateShadePanel(baseColor) {
+            if(baseColor.toLowerCase() === "#ffffff" || baseColor.toLowerCase() === "#000000") {
+                const grays = ["#ffffff", "#aaaaaa", "#777777", "#333333", "#000000"];
+                grays.forEach((color, idx) => {
+                    const box = document.getElementById(`shade-${idx+1}`);
+                    box.style.backgroundColor = color;
+                    box.dataset.color = color;
+                });
+            } else {
+                const shades = [
+                    lampColor(baseColor, 35),  
+                    lampColor(baseColor, 18),  
+                    baseColor,                 
+                    lampColor(baseColor, -18), 
+                    lampColor(baseColor, -35)  
+                ];
+                shades.forEach((color, idx) => {
+                    const box = document.getElementById(`shade-${idx+1}`);
+                    box.style.backgroundColor = color;
+                    box.dataset.color = color;
+                });
+            }
+            
+            document.querySelectorAll('.shade-box').forEach(b => b.classList.remove('selected'));
+            const defaultActive = document.getElementById('shade-3');
+            defaultActive.classList.add('selected');
+            selectedColor = defaultActive.dataset.color;
+        }
+
+        // Tıklama Dinleyicileri
+        const mainColors = document.querySelectorAll('.color-slice, .center-color');
+        mainColors.forEach(el => {
+            el.addEventListener('click', (e) => {
+                const base = el.dataset.color;
+                updateShadePanel(base);
+                e.stopPropagation();
+            });
+        });
+
+        const shadeBoxes = document.querySelectorAll('.shade-box');
+        shadeBoxes.forEach(box => {
             box.addEventListener('click', () => {
-                document.querySelector('.color-box.selected').classList.remove('selected');
+                document.querySelectorAll('.shade-box').forEach(b => b.classList.remove('selected'));
                 box.classList.add('selected');
                 selectedColor = box.dataset.color;
             });
         });
 
-        // 5. GELİŞMİŞ SÜRÜKLEME (DRAG) VE AKILLI ZOOM SİSTEMİ
+        updateShadePanel("#FF0000");
+
+        // 5. GELİŞMİŞ SÜRÜKLEME, SINIRLI ZOOM VE OTOMATİK ÇİZGİ GİZLEME SİSTEMİ
         const container = document.getElementById('canvas-container');
         
         function getMinScale() {
@@ -213,9 +325,9 @@
         function updateTransform() {
             const minScale = getMinScale();
             if (scale < minScale) scale = minScale; 
-            if (scale > 6) scale = 6; // Maksimum yakınlaşma sınırı
+            if (scale > 6) scale = 6; 
 
-            // Çizgilerin küçülünce tamamen yok olmasını sağlayan dinamik kontrol
+            // Çizgilerin küçülttükçe kesin olarak yok olmasını sağlayan dinamik kontrol alanı
             if (scale < 1.35) {
                 canvas.style.backgroundImage = "none";
             } else {
@@ -231,36 +343,35 @@
 
         updateTransform();
 
-        // Zoom (Tekerlek) Kontrolü
+        // Zoom Kontrolü
         container.addEventListener('wheel', (e) => {
             e.preventDefault();
             scale += e.deltaY * -0.0015;
             updateTransform();
         }, { passive: false });
 
-        // Fare ile Tutup Sürükleme Özelliği
+        // Sürükleme (Drag) Kontrolü
         container.addEventListener('mousedown', (e) => {
             isDragging = true;
-            isMoving = false; // Tıklama başlangıcında hareket etmiyor olarak ayarla
+            isMoving = false;
             startX = e.clientX - translateX;
             startY = e.clientY - translateY;
         });
 
         window.addEventListener('mouseup', () => {
             isDragging = false;
-            // Fare bırakıldığında ufak bir gecikmeyle boyama kilidini kaldırıyoruz
             setTimeout(() => { isMoving = false; }, 50);
         });
 
         container.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            isMoving = true; // Sürükleme yapıldığını belirt, boyama tetiklenmesin
+            isMoving = true;
             translateX = e.clientX - startX;
             translateY = e.clientY - startY;
             updateTransform();
         });
 
-        // Mobil Dokunmatik Ekran Sürükleme Desteği
+        // Mobil Dokunmatik Ekranlar
         container.addEventListener('touchstart', (e) => {
             if (e.touches.length > 1) return;
             isDragging = true;
