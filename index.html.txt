@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixelword - Piksel Dünyası</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #222;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        /* Tuval Alanı */
+        #canvas-container {
+            width: 100vw; height: 100vh;
+            overflow: hidden; display: flex;
+            align-items: center; justify-content: center;
+            cursor: grab; background: #111;
+        }
+        #canvas-container:active { cursor: grabbing; }
+        #pixel-canvas {
+            display: grid;
+            grid-template-columns: repeat(100, 20px);
+            grid-template-rows: repeat(100, 20px);
+            background-color: #fff;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transform-origin: center center;
+        }
+        .pixel {
+            width: 20px; height: 20px;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            box-sizing: border-box;
+            background-color: #ffffff;
+        }
+        .pixel:hover { filter: brightness(0.85); cursor: pointer; }
+        
+        /* Arayüz Elemanları */
+        #ui-layer {
+            position: absolute; bottom: 30px; left: 50%;
+            transform: translateX(-50%); display: flex;
+            flex-direction: column; align-items: center; gap: 15px;
+            pointer-events: none; z-index: 10;
+        }
+        .interactive { pointer-events: auto; }
+        
+        /* Renk Paleti */
+        #palette {
+            display: flex; gap: 10px; background: #fff;
+            padding: 12px 20px; border-radius: 50px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 3px solid #000;
+        }
+        .color-box {
+            width: 32px; height: 32px; border-radius: 50%;
+            cursor: pointer; border: 3px solid transparent;
+            box-sizing: border-box; transition: transform 0.1s;
+        }
+        .color-box:hover { transform: scale(1.15); }
+        .color-box.selected { border-color: #000; transform: scale(1.2); }
+
+        /* Zamanlayıcı Butonu */
+        #timer-btn {
+            background: #EF4444; color: white; border: 3px solid #000;
+            padding: 12px 35px; font-weight: bold; font-size: 20px;
+            border-radius: 8px; box-shadow: 0 5px 0 #000;
+            display: none; font-family: sans-serif;
+        }
+        #timer-btn.waiting { background: #4B5563; box-shadow: 0 2px 0 #000; transform: translateY(3px); }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <div id="pixel-canvas"></div>
+    </div>
+
+    <div id="ui-layer">
+        <button id="timer-btn" class="waiting">5s</button>
+        <div id="palette" class="interactive">
+            <div class="color-box selected" style="background: #000000;" data-color="#000000"></div>
+            <div class="color-box" style="background: #ffffff; border: 2px solid #ccc;" data-color="#ffffff"></div>
+            <div class="color-box" style="background: #e63946;" data-color="#e63946"></div>
+            <div class="color-box" style="background: #4cc9f0;" data-color="#4cc9f0"></div>
+            <div class="color-box" style="background: #2a9d8f;" data-color="#2a9d8f"></div>
+            <div class="color-box" style="background: #e9c46a;" data-color="#e9c46a"></div>
+            <div class="color-box" style="background: #f4a261;" data-color="#f4a261"></div>
+            <div class="color-box" style="background: #a2d2ff;" data-color="#a2d2ff"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Senin Canlı Firebase Proje Bilgilerin
+        const firebaseConfig = {
+            apiKey: "AIzaSyAs7K-wI_wYmZ7kX2_7Bf9X9_z3KzW3zYc",
+            authDomain: "pixelword-a7c1b.firebaseapp.com",
+            projectId: "pixelword-a7c1b",
+            storageBucket: "pixelword-a7c1b.appspot.com",
+            messagingSenderId: "1064972304859",
+            appId: "1:1064972304859:web:06FkZmMwYjgtN2Q1ZC00YzBmLWE1NDktOWViMGYwMTZhZkZk"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const canvas = document.getElementById('pixel-canvas');
+        const timerBtn = document.getElementById('timer-btn');
+        let selectedColor = '#000000';
+        let canPlacePixel = true;
+        let countdown = 5;
+
+        // 1. 100x100 Haritayı Ekrana Çizme (10.000 Kare)
+        for (let i = 0; i < 10000; i++) {
+            const pixel = document.createElement('div');
+            pixel.classList.add('pixel');
+            pixel.dataset.id = i; 
+            
+            // Piksele tıklayınca Firebase'e yazma
+            pixel.addEventListener('click', async () => {
+                if (!canPlacePixel) return;
+
+                const pixelId = pixel.dataset.id;
+                startCooldown(); // 5 saniye kilidini aç
+
+                try {
+                    // Firebase'e pikseller koleksiyonuna gönderiyoruz
+                    await setDoc(doc(db, "pikseller", "kare_" + pixelId), {
+                        renk: selectedColor,
+                        zaman: new Date().toISOString()
+                    });
+                } catch (e) {
+                    console.error("Piksel iletilemedi:", e);
+                }
+            });
+
+            canvas.appendChild(pixel);
+        }
+
+        // 2. Canlı Dinleme Altyapısı: Başka biri boyarsa sayfayı yenilemeden anında değişir!
+        for (let i = 0; i < 10000; i++) {
+            onSnapshot(doc(db, "pikseller", "kare_" + i), (docSnap) => {
+                if (docSnap.exists()) {
+                    const veri = docSnap.data();
+                    const hedefPixel = canvas.querySelector(`[data-id="${i}"]`);
+                    if (hedefPixel) hedefPixel.style.backgroundColor = veri.renk;
+                }
+            });
+        }
+
+        // 3. 5 Saniye Geri Sayım Kilidi
+        function startCooldown() {
+            canPlacePixel = false;
+            countdown = 5;
+            timerBtn.style.display = 'block';
+            timerBtn.innerText = `${countdown}s`;
+
+            const interval = setInterval(() => {
+                countdown--;
+                timerBtn.innerText = `${countdown}s`;
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    canPlacePixel = true;
+                    timerBtn.style.display = 'none';
+                }
+            }, 1000);
+        }
+
+        // 4. Palet Renk Değişimi Kontrolü
+        const colorBoxes = document.querySelectorAll('.color-box');
+        colorBoxes.forEach(box => {
+            box.addEventListener('click', () => {
+                document.querySelector('.color-box.selected').classList.remove('selected');
+                box.classList.add('selected');
+                selectedColor = box.dataset.color;
+            });
+        });
+
+        // 5. Sürükleme ve Zoom (Yakınlaştırma / Uzaklaştırma) Mekanizması
+        let scale = 1;
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
+        const container = document.getElementById('canvas-container');
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            scale += e.deltaY * -0.001;
+            scale = Math.min(Math.max(.2, scale), 4); // Yakınlaşma sınırları (.2x ile 4x arası)
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        });
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('pixel')) return; // Piksellere basınca sürüklemesin
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        });
+    </script>
+</body>
+</html>
