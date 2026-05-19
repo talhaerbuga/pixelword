@@ -8,7 +8,7 @@
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
             overflow: hidden; 
-            background-color: #f3f4f6; /* Siyah alanlar kalktı, temiz açık gri oldu */
+            background-color: #f3f4f6; /* Siyah alanlar yok, temiz açık gri */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
             -webkit-user-select: none;
@@ -19,16 +19,18 @@
             overflow: hidden; display: flex;
             align-items: center; justify-content: center;
             cursor: grab; 
-            background-color: #f3f4f6; /* Arkadaki siyahlık tamamen temizlendi */
+            background-color: #f3f4f6;
             position: relative;
         }
         #canvas-container:active { cursor: grabbing; }
         
-        /* 100x100 HARİTA ALANI */
+        /* 100x100 TAM KARE VE DAHA KÜÇÜK HARİTA ALANI */
         #pixel-canvas {
             display: grid;
-            grid-template-columns: repeat(100, 10px); /* İstediğin gibi küçük kareler (10px) */
-            grid-template-rows: repeat(100, 10px);
+            grid-template-columns: repeat(100, 8px); /* Kareler biraz daha küçültülerek 8px yapıldı */
+            grid-template-rows: repeat(100, 8px);    /* Tam kare olması için satırlar da 8px olarak eşitlendi */
+            width: 800px;  /* 100 * 8px = 800px tam kare genişlik */
+            height: 800px; /* 100 * 8px = 800px tam kare yükseklik */
             background-color: #ffffff;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             transform-origin: center center;
@@ -37,11 +39,11 @@
         
         /* Kare Ayarları ve Uzaklaşınca Otomatik Eriyen İnce Çizgiler */
         .pixel {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             box-sizing: border-box;
             background-color: #ffffff;
-            /* Noktasız ince çizgiler: Uzaklaşınca tarayıcı tarafından otomatik eritilir */
+            /* Noktasız ince çizgiler: Uzaklaşınca otomatik olarak erir ve pürüzsüz görünür */
             outline: 0.5px solid rgba(229, 231, 235, 0.8);
             outline-offset: -0.5px;
         }
@@ -156,7 +158,9 @@
                 if (docSnap.exists()) {
                     const veri = docSnap.data();
                     const hedefPixel = canvas.querySelector(`[data-id="${i}"]`);
-                    if (hedefPixel) hedefPixel.style.backgroundColor = veri.renk || "#ffffff";
+                    if (hedefPixel) {
+                        hedefPixel.style.backgroundColor = veri.renk || "#ffffff";
+                    }
                 }
             });
         }
@@ -189,32 +193,30 @@
             });
         });
 
-        // 5. AKILLI ZOOM SINIRLAMA VE DRAG SİSTEMİ
+        // 5. YENİ PİKSEL BOYUTUNA GÖRE AYARLANMIŞ ZOOM VE DRAG SİSTEMİ
         const container = document.getElementById('canvas-container');
         
-        // Ekran boyutuna göre alanın tamamının sığacağı minimum zoom oranını hesaplayan fonksiyon
         function getMinScale() {
-            const canvasSize = 1000; // 100 kare * 10px = 1000px tuval genişliği
+            const canvasSize = 800; // Yeni tam kare boyutumuz: 800px (100 kare * 8px)
             const minScaleX = window.innerWidth / canvasSize;
             const minScaleY = window.innerHeight / canvasSize;
-            // Haritanın tamamının ekranda kalacağı (en fazla küçülebileceği) korumalı sınır değeri
+            // Haritanın tamamı ekrana sığdığı an küçülmeyi kilitleyen sınır oranı
             return Math.min(minScaleX, minScaleY) * 0.95; 
         }
 
-        let scale = Math.max(1.2, getMinScale()); // Başlangıç zoom seviyesi
+        let scale = Math.max(1.5, getMinScale()); 
         let isDragging = false;
         let startX, startY, translateX = 0, translateY = 0;
 
         function updateTransform() {
-            // Uzaklaştırma (Küçültme) sınırını anlık hesaplayıp kilitliyoruz
             const minScale = getMinScale();
             if (scale < minScale) scale = minScale; 
-            if (scale > 5) scale = 5; // Aşırı yakınlaşma sınırı
+            if (scale > 6) scale = 6; // Aşırı yakınlaşma sınırı
 
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
         }
 
-        // İlk açılışta tuvali konumlandır
+        // İlk açılışta tuvali ortala ve konumlandır
         updateTransform();
 
         container.addEventListener('wheel', (e) => {
@@ -239,7 +241,7 @@
             updateTransform();
         });
 
-        // Mobil Dokunmatik Ekranlar İçin Sınır Korumalı Sürükleme
+        // Mobil Dokunmatik Ekran Desteği
         container.addEventListener('touchstart', (e) => {
             if (e.target.classList.contains('pixel') || e.touches.length > 1) return;
             isDragging = true;
@@ -254,7 +256,6 @@
             updateTransform();
         });
 
-        // Ekran boyutu değiştiğinde minimum küçülme sınırını otomatik yeniden hesapla
         window.addEventListener('resize', () => {
             updateTransform();
         });
