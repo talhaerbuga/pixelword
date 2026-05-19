@@ -24,30 +24,34 @@
         }
         #canvas-container:active { cursor: grabbing; }
         
-        /* 100x100 TAM KARE VE DAHA KÜÇÜK HARİTA ALANI */
+        /* 100x100 TAM KARE VE UZAKLAŞINCA ERİYEN ÇİZGİLİ HARİTA */
         #pixel-canvas {
             display: grid;
-            grid-template-columns: repeat(100, 8px); /* Kareler biraz daha küçültülerek 8px yapıldı */
-            grid-template-rows: repeat(100, 8px);    /* Tam kare olması için satırlar da 8px olarak eşitlendi */
-            width: 800px;  /* 100 * 8px = 800px tam kare genişlik */
-            height: 800px; /* 100 * 8px = 800px tam kare yükseklik */
+            grid-template-columns: repeat(100, 8px); /* 8px mini pikseller */
+            grid-template-rows: repeat(100, 8px);   
+            width: 800px;  /* 100 * 8px = 800px tam kare */
+            height: 800px; 
             background-color: #ffffff;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             transform-origin: center center;
             will-change: transform;
+
+            /* AKILLI ÇİZGİ SİSTEMİ: Uzaklaştıkça tarayıcı bu gradient çizgileri eritir ve yok eder */
+            background-image: 
+                linear-gradient(#e5e7eb 1px, transparent 1px),
+                linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+            background-size: 8px 8px;
         }
         
-        /* Kare Ayarları ve Uzaklaşınca Otomatik Eriyen İnce Çizgiler */
+        /* Kare Ayarları */
         .pixel {
             width: 8px;
             height: 8px;
             box-sizing: border-box;
-            background-color: #ffffff;
-            /* Noktasız ince çizgiler: Uzaklaşınca otomatik olarak erir ve pürüzsüz görünür */
-            outline: 0.5px solid rgba(229, 231, 235, 0.8);
-            outline-offset: -0.5px;
+            /* Eski border'lar kaldırıldı, böylece uzaklaşınca ekran kararmayacak */
+            background-color: rgba(255, 255, 255, 0.01); /* Şeffaf taban, arkadaki çizgileri gösterir */
         }
-        .pixel:hover { filter: brightness(0.9); cursor: pointer; }
+        .pixel:hover { filter: brightness(0.9); cursor: pointer; background-color: rgba(0,0,0,0.05); }
         
         /* Arayüz Elemanları */
         #ui-layer {
@@ -159,7 +163,8 @@
                     const veri = docSnap.data();
                     const hedefPixel = canvas.querySelector(`[data-id="${i}"]`);
                     if (hedefPixel) {
-                        hedefPixel.style.backgroundColor = veri.renk || "#ffffff";
+                        // Eğer boyanmamışsa şeffaf bırak ki arkadaki akıllı çizgiler gözüksün
+                        hedefPixel.style.backgroundColor = veri.renk || "rgba(255,255,255,0.01)";
                     }
                 }
             });
@@ -193,14 +198,14 @@
             });
         });
 
-        // 5. YENİ PİKSEL BOYUTUNA GÖRE AYARLANMIŞ ZOOM VE DRAG SİSTEMİ
+        // 5. ZOOM VE DRAG SİSTEMİ (MİNİMUM VE MAKSİMUM SINIRLI)
         const container = document.getElementById('canvas-container');
         
         function getMinScale() {
-            const canvasSize = 800; // Yeni tam kare boyutumuz: 800px (100 kare * 8px)
+            const canvasSize = 800; // Genişlik 800px
             const minScaleX = window.innerWidth / canvasSize;
             const minScaleY = window.innerHeight / canvasSize;
-            // Haritanın tamamı ekrana sığdığı an küçülmeyi kilitleyen sınır oranı
+            // Ekran küçüldüğünde haritanın dışına taşmayı önleyen tam sığma kilidi
             return Math.min(minScaleX, minScaleY) * 0.95; 
         }
 
@@ -210,13 +215,12 @@
 
         function updateTransform() {
             const minScale = getMinScale();
-            if (scale < minScale) scale = minScale; 
-            if (scale > 6) scale = 6; // Aşırı yakınlaşma sınırı
+            if (scale < minScale) scale = minScale; // Belirttiğin son küçülme sınırı kilitlendi
+            if (scale > 6) scale = 6; 
 
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
         }
 
-        // İlk açılışta tuvali ortala ve konumlandır
         updateTransform();
 
         container.addEventListener('wheel', (e) => {
@@ -241,7 +245,7 @@
             updateTransform();
         });
 
-        // Mobil Dokunmatik Ekran Desteği
+        // Mobil Destek Mekanizması
         container.addEventListener('touchstart', (e) => {
             if (e.target.classList.contains('pixel') || e.touches.length > 1) return;
             isDragging = true;
