@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixelword - Profesyonel Yuvarlak Renk Çarkı</title>
+    <title>Pixelword - Piksel Dünyası</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -38,84 +38,41 @@
         
         /* Arayüz Elemanları */
         #ui-layer {
-            position: absolute; bottom: 40px; left: 50%;
+            position: absolute; bottom: 30px; left: 50%;
             transform: translateX(-50%); display: flex;
-            flex-direction: column; align-items: center; gap: 20px;
+            flex-direction: column; align-items: center; gap: 15px;
             pointer-events: none; z-index: 10;
         }
         .interactive { pointer-events: auto; }
         
-        /* GERÇEK YUVARLAK RENK ÇARKI */
-        .wheel-container {
-            position: relative;
-            width: 160px;
-            height: 160px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 10px;
-            border-radius: 50%;
-            border: 3px solid #000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        /* Orijinal Godot Tarzı Yan Yana Renk Paleti */
+        #palette {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            gap: 8px;
+            background: #ffffff;
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 0px #000000;
+            border: 3px solid #000000;
+            max-width: 90vw;
+            overflow-x: auto;
         }
-        
-        #color-wheel {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            list-style: none;
-            margin: 0; padding: 0;
-            overflow: hidden;
-        }
-
-        /* Çarkın Dilimleri (12 Renk Segmenti) */
-        .color-slice {
-            overflow: hidden;
-            position: absolute;
-            top: 0; right: 0;
-            width: 50%; height: 50%;
-            transform-origin: 0% 100%;
+        .color-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px; /* Hafif yuvarlatılmış pikselli kutular */
             cursor: pointer;
-            transition: filter 0.2s;
+            border: 3px solid transparent;
+            box-sizing: border-box;
+            transition: transform 0.1s;
+            flex-shrink: 0;
         }
-        .color-slice:hover { filter: brightness(1.2); }
-        .color-slice.selected { filter: brightness(1.3) contrast(1.2); border: 2px solid #000; z-index: 5; }
-
-        /* Her bir dilimin dönüş açısı ve rengi (30'ar derece) */
-        .slice-1  { transform: rotate(0deg) skewY(-60deg); background: #FFD300; }
-        .slice-2  { transform: rotate(30deg) skewY(-60deg); background: #97C701; }
-        .slice-3  { transform: rotate(60deg) skewY(-60deg); background: #019D00; }
-        .slice-4  { transform: rotate(90deg) skewY(-60deg); background: #00ACAD; }
-        .slice-5  { transform: rotate(120deg) skewY(-60deg); background: #0088F5; }
-        .slice-6  { transform: rotate(150deg) skewY(-60deg); background: #001391; }
-        .slice-7  { transform: rotate(180deg) skewY(-60deg); background: #7F00FF; }
-        .slice-8  { transform: rotate(210deg) skewY(-60deg); background: #FF00FF; }
-        .slice-9  { transform: rotate(240deg) skewY(-60deg); background: #FF007F; }
-        .slice-10 { transform: rotate(270deg) skewY(-60deg); background: #FF0000; }
-        .slice-11 { transform: rotate(30deg) skewY(-60deg); background: #FF7F00; }
-        .slice-12 { transform: rotate(330deg) skewY(-60deg); background: #FFFFA1; }
-
-        /* Çarkın Merkezindeki Siyah-Beyaz Göbek Alanı */
-        .center-circle {
-            position: absolute;
-            width: 55px; height: 55px;
-            background: white;
-            border-radius: 50%;
-            z-index: 10;
-            border: 3px solid #000;
-            display: flex;
-            overflow: hidden;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        .color-box:hover { transform: scale(1.1); }
+        .color-box.selected { 
+            border-color: #000000; 
+            transform: scale(1.15);
+            box-shadow: inset 0 0 0 2px #ffffff; /* Seçilen rengin etrafına beyaz çizgi */
         }
-        .center-color {
-            width: 50%; height: 100%;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-        .center-color:hover { opacity: 0.8; }
-        .center-color.selected { border: 2px solid #000; box-sizing: border-box; }
 
         /* Zamanlayıcı Butonu */
         #timer-btn {
@@ -124,6 +81,7 @@
             border-radius: 8px; box-shadow: 0 5px 0 #000;
             display: none; font-family: sans-serif;
         }
+        #timer-btn.waiting { background: #4B5563; box-shadow: 0 2px 0 #000; transform: translateY(3px); }
     </style>
 </head>
 <body>
@@ -134,26 +92,19 @@
 
     <div id="ui-layer">
         <button id="timer-btn" class="waiting">5s</button>
-        
-        <div class="wheel-container interactive">
-            <ul id="color-wheel">
-                <li class="color-slice slice-1 selected" data-color="#FFD300"></li>
-                <li class="color-slice slice-2" data-color="#97C701"></li>
-                <li class="color-slice slice-3" data-color="#019D00"></li>
-                <li class="color-slice slice-4" data-color="#00ACAD"></li>
-                <li class="color-slice slice-5" data-color="#0088F5"></li>
-                <li class="color-slice slice-6" data-color="#001391"></li>
-                <li class="color-slice slice-7" data-color="#7F00FF"></li>
-                <li class="color-slice slice-8" data-color="#FF00FF"></li>
-                <li class="color-slice slice-9" data-color="#FF007F"></li>
-                <li class="color-slice slice-10" data-color="#FF0000"></li>
-                <li class="color-slice slice-11" data-color="#FF7F00"></li>
-                <li class="color-slice slice-12" data-color="#FFFFA1"></li>
-            </ul>
-            <div class="center-circle">
-                <div class="center-color" style="background: #ffffff;" data-color="#ffffff"></div>
-                <div class="center-color" style="background: #000000;" data-color="#000000"></div>
-            </div>
+        <div id="palette" class="interactive">
+            <div class="color-box selected" style="background: #000000;" data-color="#000000"></div>
+            <div class="color-box" style="background: #ffffff; border: 1px solid #ccc;" data-color="#ffffff"></div>
+            <div class="color-box" style="background: #e63946;" data-color="#e63946"></div>
+            <div class="color-box" style="background: #ff7f00;" data-color="#ff7f00"></div>
+            <div class="color-box" style="background: #ffd700;" data-color="#ffd700"></div>
+            <div class="color-box" style="background: #2a9d8f;" data-color="#2a9d8f"></div>
+            <div class="color-box" style="background: #4cc9f0;" data-color="#4cc9f0"></div>
+            <div class="color-box" style="background: #001391;" data-color="#001391"></div>
+            <div class="color-box" style="background: #7f00ff;" data-color="#7f00ff"></div>
+            <div class="color-box" style="background: #ff00ff;" data-color="#ff00ff"></div>
+            <div class="color-box" style="background: #8b4513;" data-color="#8b4513"></div>
+            <div class="color-box" style="background: #aaaaaa;" data-color="#aaaaaa"></div>
         </div>
     </div>
 
@@ -161,6 +112,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Firebase Proje Bilgilerin
         const firebaseConfig = {
             apiKey: "AIzaSyAs7K-wI_wYmZ7kX2_7Bf9X9_z3KzW3zYc",
             authDomain: "pixelword-a7c1b.firebaseapp.com",
@@ -175,11 +127,11 @@
 
         const canvas = document.getElementById('pixel-canvas');
         const timerBtn = document.getElementById('timer-btn');
-        let selectedColor = '#FFD300'; 
+        let selectedColor = '#000000';
         let canPlacePixel = true;
         let countdown = 5;
 
-        // 1. 100x100 Haritayı Ekrana Çizme (10.000 Kare)
+        // 1. 100x100 Haritayı Çizme
         for (let i = 0; i < 10000; i++) {
             const pixel = document.createElement('div');
             pixel.classList.add('pixel');
@@ -204,7 +156,7 @@
             canvas.appendChild(pixel);
         }
 
-        // 2. Canlı Dinleme Altyapısı
+        // 2. Canlı Dinleme
         for (let i = 0; i < 10000; i++) {
             onSnapshot(doc(db, "pikseller", "kare_" + i), (docSnap) => {
                 if (docSnap.exists()) {
@@ -215,7 +167,7 @@
             });
         }
 
-        // 3. 5 Saniye Geri Sayım Kilidi
+        // 3. 5 Saniye Kilidi
         function startCooldown() {
             canPlacePixel = false;
             countdown = 5;
@@ -233,20 +185,17 @@
             }, 1000);
         }
 
-        // 4. Yuvarlak Palet Renk Değişimi Kontrolü
-        const allColors = document.querySelectorAll('.color-slice, .center-color');
-        allColors.forEach(box => {
-            box.addEventListener('click', (e) => {
-                const currentSelected = document.querySelector('.color-slice.selected, .center-color.selected');
-                if (currentSelected) currentSelected.classList.remove('selected');
-                
+        // 4. Godot Tarzı Palet Seçim Kontrolü
+        const colorBoxes = document.querySelectorAll('.color-box');
+        colorBoxes.forEach(box => {
+            box.addEventListener('click', () => {
+                document.querySelector('.color-box.selected').classList.remove('selected');
                 box.classList.add('selected');
                 selectedColor = box.dataset.color;
-                e.stopPropagation(); // Tıklamanın diğer elementleri etkilemesini engelle
             });
         });
 
-        // 5. Sürükleme ve Zoom Mekanizması
+        // 5. Sürükleme ve Zoom Kontrolleri
         let scale = 1;
         let isDragging = false;
         let startX, startY, translateX = 0, translateY = 0;
