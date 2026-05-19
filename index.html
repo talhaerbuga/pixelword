@@ -7,36 +7,41 @@
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #222;
+            overflow: hidden; background-color: #1a1a1a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
+            -webkit-user-select: none;
         }
-        /* Tuval Alanı */
+        /* Tuval Alanı ve Taşıyıcı */
         #canvas-container {
             width: 100vw; height: 100vh;
             overflow: hidden; display: flex;
             align-items: center; justify-content: center;
-            cursor: grab; background: #111;
+            cursor: grab; background: #111111;
+            position: relative;
         }
         #canvas-container:active { cursor: grabbing; }
+        
         #pixel-canvas {
             display: grid;
             grid-template-columns: repeat(100, 20px);
             grid-template-rows: repeat(100, 20px);
-            background-color: #fff;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            background-color: #ffffff;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
             transform-origin: center center;
+            will-change: transform;
         }
         .pixel {
             width: 20px; height: 20px;
-            border-right: 1px solid #ddd;
-            border-bottom: 1px solid #ddd;
+            border-right: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             box-sizing: border-box;
             background-color: #ffffff;
+            transition: filter 0.05s;
         }
         .pixel:hover { filter: brightness(0.85); cursor: pointer; }
         
-        /* Arayüz Elemanları */
+        /* Arayüz Katmanı */
         #ui-layer {
             position: absolute; bottom: 30px; left: 50%;
             transform: translateX(-50%); display: flex;
@@ -45,22 +50,25 @@
         }
         .interactive { pointer-events: auto; }
         
-        /* Orijinal Godot Tarzı Yan Yana Renk Paleti */
+        /* Orijinal Godot Tarzı Piksel Renk Paleti */
         #palette {
             display: flex;
             gap: 8px;
             background: #ffffff;
-            padding: 10px 15px;
+            padding: 12px 16px;
             border-radius: 12px;
             box-shadow: 0 8px 0px #000000;
             border: 3px solid #000000;
             max-width: 90vw;
             overflow-x: auto;
+            scrollbar-width: none; /* Firefox için */
         }
+        #palette::-webkit-scrollbar { display: none; } /* Chrome/Safari için */
+        
         .color-box {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px; /* Hafif yuvarlatılmış pikselli kutular */
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
             cursor: pointer;
             border: 3px solid transparent;
             box-sizing: border-box;
@@ -71,17 +79,17 @@
         .color-box.selected { 
             border-color: #000000; 
             transform: scale(1.15);
-            box-shadow: inset 0 0 0 2px #ffffff; /* Seçilen rengin etrafına beyaz çizgi */
+            box-shadow: inset 0 0 0 2px #ffffff;
         }
 
-        /* Zamanlayıcı Butonu */
+        /* 5 Saniye Geri Sayım Butonu */
         #timer-btn {
-            background: #EF4444; color: white; border: 3px solid #000;
-            padding: 12px 35px; font-weight: bold; font-size: 20px;
-            border-radius: 8px; box-shadow: 0 5px 0 #000;
-            display: none; font-family: sans-serif;
+            background: #ef4444; color: white; border: 3px solid #000000;
+            padding: 12px 35px; font-weight: bold; font-size: 22px;
+            border-radius: 8px; box-shadow: 0 5px 0px #000000;
+            display: none; font-family: 'Courier New', Courier, monospace;
         }
-        #timer-btn.waiting { background: #4B5563; box-shadow: 0 2px 0 #000; transform: translateY(3px); }
+        #timer-btn.waiting { background: #4b5563; box-shadow: 0 2px 0 #000000; transform: translateY(3px); }
     </style>
 </head>
 <body>
@@ -112,7 +120,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase Proje Bilgilerin
+        // Firebase Yapılandırması
         const firebaseConfig = {
             apiKey: "AIzaSyAs7K-wI_wYmZ7kX2_7Bf9X9_z3KzW3zYc",
             authDomain: "pixelword-a7c1b.firebaseapp.com",
@@ -131,7 +139,7 @@
         let canPlacePixel = true;
         let countdown = 5;
 
-        // 1. 100x100 Haritayı Çizme
+        // 1. Haritayı İnşa Etme
         for (let i = 0; i < 10000; i++) {
             const pixel = document.createElement('div');
             pixel.classList.add('pixel');
@@ -149,14 +157,14 @@
                         zaman: new Date().toISOString()
                     });
                 } catch (e) {
-                    console.error("Piksel iletilemedi:", e);
+                    console.error("Piksel gönderilemedi:", e);
                 }
             });
 
             canvas.appendChild(pixel);
         }
 
-        // 2. Canlı Dinleme
+        // 2. Firebase Gerçek Zamanlı Dinleyici (Anlık Senkronizasyon)
         for (let i = 0; i < 10000; i++) {
             onSnapshot(doc(db, "pikseller", "kare_" + i), (docSnap) => {
                 if (docSnap.exists()) {
@@ -167,7 +175,7 @@
             });
         }
 
-        // 3. 5 Saniye Kilidi
+        // 3. Geri Sayım Mekanizması
         function startCooldown() {
             canPlacePixel = false;
             countdown = 5;
@@ -185,7 +193,7 @@
             }, 1000);
         }
 
-        // 4. Godot Tarzı Palet Seçim Kontrolü
+        // 4. Renk Paleti Yönetimi
         const colorBoxes = document.querySelectorAll('.color-box');
         colorBoxes.forEach(box => {
             box.addEventListener('click', () => {
@@ -195,18 +203,21 @@
             });
         });
 
-        // 5. Sürükleme ve Zoom Kontrolleri
+        // 5. Gelişmiş Sürükleme (Drag) ve Ölçekleme (Zoom) Sistemi
         let scale = 1;
         let isDragging = false;
         let startX, startY, translateX = 0, translateY = 0;
         const container = document.getElementById('canvas-container');
 
+        // Sayfa yüklendiğinde tuvali ortala
+        canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+
         container.addEventListener('wheel', (e) => {
             e.preventDefault();
-            scale += e.deltaY * -0.001;
-            scale = Math.min(Math.max(.2, scale), 4);
+            scale += e.deltaY * -0.0015;
+            scale = Math.min(Math.max(.15, scale), 5); // Minimum 0.15x, Maksimum 5x yakınlaştırma
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-        });
+        }, { passive: false });
 
         container.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('pixel')) return;
@@ -223,8 +234,23 @@
             translateY = e.clientY - startY;
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
         });
+
+        // Mobil Dokunmatik Ekran Desteği (Sürükleme İçin)
+        container.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('pixel') || e.touches.length > 1) return;
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        });
+
+        window.addEventListener('touchend', () => isDragging = false);
+
+        container.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length > 1) return;
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        });
     </script>
-</body>
-</html>
 </body>
 </html>
