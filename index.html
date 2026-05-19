@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixelword - Profesyonel Büyük Renk Çarkı</title>
+    <title>Pixelword - Profesyonel Piksel Dünyası</title>
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
@@ -22,23 +22,32 @@
         }
         #canvas-container:active { cursor: grabbing; }
         
+        /* TEMİZ, İNCE ÇİZGİLİ VE KÜÇÜK KARELİ TUVAL */
         #pixel-canvas {
             display: grid;
-            grid-template-columns: repeat(100, 20px);
-            grid-template-rows: repeat(100, 20px);
+            grid-template-columns: repeat(100, 10px); /* Kareler 10px'e küçültüldü */
+            grid-template-rows: repeat(100, 10px);
             background-color: #ffffff;
             box-shadow: 0 0 40px rgba(0,0,0,0.6);
             transform-origin: center center;
             will-change: transform;
+            
+            /* Görseldeki gibi noktasız, temiz ince çizgi ızgarası */
+            background-image: 
+                linear-gradient(#e5e7eb 1px, transparent 1px),
+                linear-gradient(90deg, #e5e7eb 1px, transparent 1px);
+            background-size: 10px 10px;
         }
+        
+        /* Noktaları Kaldırmak İçin Kenarlıkları Sildik */
         .pixel {
-            width: 20px; height: 20px;
-            border-right: 1px solid #e0e0e0;
-            border-bottom: 1px solid #e0e0e0;
+            width: 10px;
+            height: 10px;
+            border: none; /* Köşelerdeki noktaları kaldırmak için border sıfırlandı */
             box-sizing: border-box;
-            background-color: #ffffff;
+            background-color: transparent; /* Boyanmayan yerler şeffaf kalır, arkadaki temiz çizgiler görünür */
         }
-        .pixel:hover { filter: brightness(0.85); cursor: pointer; }
+        .pixel:hover { filter: brightness(0.85); cursor: pointer; background-color: rgba(0,0,0,0.1); }
         
         /* SAĞ ÜST KÖŞEDEKİ BÜYÜTÜLMÜŞ ARAYÜZ ALANI */
         #ui-layer-top-right {
@@ -48,10 +57,10 @@
         }
         .interactive { pointer-events: auto; }
         
-        /* ÇOK DAHA BÜYÜK YUVARLAK RENK ÇARKI */
+        /* BÜYÜK YUVARLAK RENK ÇARKI */
         .wheel-container {
             position: relative;
-            width: 240px; height: 240px; /* Boyut 180px'den 240px'e çıkarıldı! */
+            width: 240px; height: 240px;
             background: #ffffff;
             padding: 15px;
             border-radius: 50%;
@@ -74,7 +83,7 @@
         .color-slice:hover { filter: brightness(1.15); }
         .color-slice.selected { filter: brightness(1.25); }
 
-        /* Görseldeki Orijinal Sıralı 12 Segment */
+        /* 12 Segmentli Profesyonel Renk Dağılımı */
         .slice-1  { transform: rotate(0deg) skewY(-60deg); background: #FFD300; }   /* Sarı */
         .slice-2  { transform: rotate(30deg) skewY(-60deg); background: #97C701; }  /* Sarı-Yeşil */
         .slice-3  { transform: rotate(60deg) skewY(-60deg); background: #019D00; }  /* Yeşil */
@@ -88,7 +97,7 @@
         .slice-11 { transform: rotate(300deg) skewY(-60deg); background: #FF7F00; } /* Turuncu */
         .slice-12 { transform: rotate(330deg) skewY(-60deg); background: #FFFFA1; } /* Açık Sarı */
 
-        /* Çarkın Merkezindeki Siyah-Beyaz Alanı (O da büyütüldü) */
+        /* Çarkın Merkezindeki Siyah-Beyaz Alan */
         .center-circle {
             position: absolute; width: 75px; height: 75px;
             background: white; border-radius: 50%; z-index: 10;
@@ -97,7 +106,7 @@
         .center-color { width: 50%; height: 100%; cursor: pointer; }
         .center-color:hover { filter: brightness(0.85); }
 
-        /* DAHA GENİŞ ARA RENK TONLARI PANELİ */
+        /* BÜYÜK ARA RENK TONLARI PANELİ */
         #shade-panel {
             display: flex; gap: 8px; background: #ffffff;
             padding: 12px 18px; border-radius: 14px;
@@ -105,14 +114,14 @@
             width: calc(100% - 36px); justify-content: space-between;
         }
         .shade-box {
-            width: 36px; height: 36px; border-radius: 6px; /* Kutular artık çok daha büyük! */
+            width: 36px; height: 36px; border-radius: 6px;
             cursor: pointer; border: 3px solid transparent; box-sizing: border-box;
-            transition: transform 0.1s;
+            transition: transform(0.1s);
         }
         .shade-box:hover { transform: scale(1.1); }
         .shade-box.selected { border-color: #000000; box-shadow: inset 0 0 0 2px #fff; transform: scale(1.15); }
 
-        /* Sol Alt Zamanlayıcı Butonu */
+        /* Alt Orta Geri Sayım Butonu */
         #timer-btn {
             position: absolute; bottom: 30px; left: 50%;
             transform: translateX(-50%); pointer-events: none; z-index: 10;
@@ -156,37 +165,39 @@
         <div id="shade-panel" class="interactive">
             <div class="shade-box" id="shade-1"></div>
             <div class="shade-box" id="shade-2"></div>
-            <div class="shade-box" id="shade-3"></div> <div class="shade-box" id="shade-4"></div>
+            <div class="shade-box" id="shade-3"></div>
+            <div class="shade-box" id="shade-4"></div>
             <div class="shade-box" id="shade-5"></div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+[cite: 32]        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Senin Canlı Firebase Bağlantın
         const firebaseConfig = {
             apiKey: "AIzaSyAs7K-wI_wYmZ7kX2_7Bf9X9_z3KzW3zYc",
             authDomain: "pixelword-a7c1b.firebaseapp.com",
             projectId: "pixelword-a7c1b",
             storageBucket: "pixelword-a7c1b.appspot.com",
             messagingSenderId: "1064972304859",
-            appId: "1:1064972304859:web:06FkZmMwYjgtN2Q1ZC00YzBmLWE1NDktOWViMGYwMTZhZkZk"
+[cite: 33]            appId: "1:1064972304859:web:06FkZmMwYjgtN2Q1ZC00YzBmLWE1NDktOWViMGYwMTZhZkZk"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const canvas = document.getElementById('pixel-canvas');
+[cite: 34]        const canvas = document.getElementById('pixel-canvas');
         const timerBtn = document.getElementById('timer-btn');
-        let selectedColor = '#FF0000';
+        let selectedColor = '#FF0000'; // Varsayılan başlangıç rengi kırmızı
         let canPlacePixel = true;
         let countdown = 5;
 
-        // 1. Harita Oluşturma
-        for (let i = 0; i < 10000; i++) {
+        // 1. 100x100 Haritayı İnşa Etme (10.000 Küçük Kare)
+[cite: 35]        for (let i = 0; i < 10000; i++) {
             const pixel = document.createElement('div');
-            pixel.classList.add('pixel');
+[cite: 36]            pixel.classList.add('pixel');
             pixel.dataset.id = i; 
             
             pixel.addEventListener('click', async () => {
@@ -198,31 +209,34 @@
                 try {
                     await setDoc(doc(db, "pikseller", "kare_" + pixelId), {
                         renk: selectedColor,
-                        zaman: new Date().toISOString()
+[cite: 37]                        zaman: new Date().toISOString()
                     });
                 } catch (e) {
-                    console.error("Hata:", e);
+[cite: 38]                    console.error("Hata:", e);
                 }
             });
 
-            canvas.appendChild(pixel);
+[cite: 39]            canvas.appendChild(pixel);
         }
 
-        // 2. Canlı Dinleme
-        for (let i = 0; i < 10000; i++) {
+        // 2. Anlık Senkronizasyon (Firebase Canlı Dinleme)
+[cite: 40]        for (let i = 0; i < 10000; i++) {
             onSnapshot(doc(db, "pikseller", "kare_" + i), (docSnap) => {
                 if (docSnap.exists()) {
                     const veri = docSnap.data();
                     const hedefPixel = canvas.querySelector(`[data-id="${i}"]`);
-                    if (hedefPixel) hedefPixel.style.backgroundColor = veri.renk;
+                    // Veritabanında renk varsa boyar, yoksa şeffaf bırakıp arkadaki ızgara çizgisini gösterir
+[cite: 41]                    if (hedefPixel) {
+                        hedefPixel.style.backgroundColor = veri.renk || "transparent";
+                    }
                 }
             });
         }
 
-        // 3. Zamanlayıcı Kilidi
+        // 3. 5 Saniye Kilidi
         function startCooldown() {
             canPlacePixel = false;
-            countdown = 5;
+[cite: 43]            countdown = 5;
             timerBtn.style.display = 'block';
             timerBtn.innerText = `${countdown}s`;
 
@@ -231,13 +245,13 @@
                 timerBtn.innerText = `${countdown}s`;
                 if (countdown <= 0) {
                     clearInterval(interval);
-                    canPlacePixel = true;
+[cite: 44]                    canPlacePixel = true;
                     timerBtn.style.display = 'none';
                 }
             }, 1000);
         }
 
-        // Tonlama Fonksiyonu
+        // Tonlama Formülü
         function lampColor(hex, percent) {
             let num = parseInt(hex.replace("#",""),16),
             amt = Math.round(2.55 * percent),
@@ -247,30 +261,40 @@
             return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
         }
 
-        // Ara Renkleri Güncelleme
+        // Ara Renk Seçeneklerini Panelde Gösterme
         function updateShadePanel(baseColor) {
-            const shades = [
-                lampColor(baseColor, 35),  
-                lampColor(baseColor, 18),  
-                baseColor,                 
-                lampColor(baseColor, -18), 
-                lampColor(baseColor, -35)  
-            ];
-
-            shades.forEach((color, idx) => {
-                const box = document.getElementById(`shade-${idx+1}`);
-                box.style.backgroundColor = color;
-                box.dataset.color = color;
-                
-                if(idx === 2) {
-                    document.querySelectorAll('.shade-box').forEach(b => b.classList.remove('selected'));
-                    box.classList.add('selected');
-                    selectedColor = color;
-                }
-            });
+            if(baseColor.toLowerCase() === "#ffffff" || baseColor.toLowerCase() === "#000000") {
+                // Siyah veya beyaz seçilirse gri tonları oluştur
+                const grays = ["#ffffff", "#aaaaaa", "#777777", "#333333", "#000000"];
+                grays.forEach((color, idx) => {
+                    const box = document.getElementById(`shade-${idx+1}`);
+                    box.style.backgroundColor = color;
+                    box.dataset.color = color;
+                });
+            } else {
+                // Renkli tonlar oluştur
+                const shades = [
+                    lampColor(baseColor, 35),  
+                    lampColor(baseColor, 18),  
+                    baseColor,                 
+                    lampColor(baseColor, -18), 
+                    lampColor(baseColor, -35)  
+                ];
+                shades.forEach((color, idx) => {
+                    const box = document.getElementById(`shade-${idx+1}`);
+                    box.style.backgroundColor = color;
+                    box.dataset.color = color;
+                });
+            }
+            
+            // Seçilen ana rengi otomatik aktif et
+            document.querySelectorAll('.shade-box').forEach(b => b.classList.remove('selected'));
+            const defaultActive = document.getElementById('shade-3');
+            defaultActive.classList.add('selected');
+            selectedColor = defaultActive.dataset.color;
         }
 
-        // Ana Renk Seçimi
+        // Ana Çark Tıklaması
         const mainColors = document.querySelectorAll('.color-slice, .center-color');
         mainColors.forEach(el => {
             el.addEventListener('click', (e) => {
@@ -280,7 +304,7 @@
             });
         });
 
-        // Ara Ton Seçimi
+        // Ara Ton Tıklaması
         const shadeBoxes = document.querySelectorAll('.shade-box');
         shadeBoxes.forEach(box => {
             box.addEventListener('click', () => {
@@ -290,11 +314,11 @@
             });
         });
 
-        // Varsayılan açılış rengi Kırmızı
+        // İlk açılış tonları (Kırmızı)
         updateShadePanel("#FF0000");
 
-        // 5. Sürükleme ve Zoom
-        let scale = 1;
+        // 5. Sürükleme ve Yakınlaştırma (Zoom) Kontrolleri
+        let scale = 1.5; // Küçük karelerde daha rahat görmek için ilk açılış ölçeğini 1.5 yaptık
         let isDragging = false;
         let startX, startY, translateX = 0, translateY = 0;
         const container = document.getElementById('canvas-container');
@@ -303,18 +327,18 @@
         container.addEventListener('wheel', (e) => {
             e.preventDefault();
             scale += e.deltaY * -0.0015;
-            scale = Math.min(Math.max(.15, scale), 5);
+            scale = Math.min(Math.max(.2, scale), 6); // Maksimum 6 kat yakınlaşma
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
         }, { passive: false });
 
-        container.addEventListener('mousedown', (e) => {
+[cite: 50]        container.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('pixel')) return;
             isDragging = true;
             startX = e.clientX - translateX;
             startY = e.clientY - translateY;
         });
 
-        window.addEventListener('mouseup', () => isDragging = false);
+[cite: 51]        window.addEventListener('mouseup', () => isDragging = false);
 
         container.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
@@ -323,6 +347,7 @@
             canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
         });
 
+        // Telefon/Mobil Kaydırma Desteği
         container.addEventListener('touchstart', (e) => {
             if (e.target.classList.contains('pixel') || e.touches.length > 1) return;
             isDragging = true;
